@@ -34,15 +34,17 @@ const launchBrowserIfNeeded = async function (debuglog) {
   }
   if (!_browserLaunchPromise) {
     debuglog('no browser instance, launching new browser..')
-    _browserLaunchPromise = puppeteer
-      .launch({
-        ignoreHTTPSErrors: true,
-        args: ['--disable-setuid-sandbox', '--no-sandbox']
-      })
-      .then(browser => {
-        debuglog('new browser launched')
-        return browser
-      })
+    const launchOptions = {
+      ignoreHTTPSErrors: true,
+      args: ['--disable-setuid-sandbox', '--no-sandbox']
+    }
+    if (process.env['PUPPETEER_EXECUTABLE_PATH']) {
+      launchOptions.executablePath = process.env['PUPPETEER_EXECUTABLE_PATH']
+    }
+    _browserLaunchPromise = puppeteer.launch(launchOptions).then(browser => {
+      debuglog('new browser launched')
+      return browser
+    })
   }
   browser = await _browserLaunchPromise
   _browserLaunchPromise = null
@@ -209,7 +211,9 @@ const generateCriticalCssWrapped = async function generateCriticalCssWrapped (
         userAgent: options.userAgent || DEFAULT_USER_AGENT,
         renderWaitTime: options.renderWaitTime || DEFAULT_RENDER_WAIT_TIMEOUT,
         timeout: timeoutWait,
-        blockJSRequests: options.blockJSRequests || DEFAULT_BLOCK_JS_REQUESTS,
+        blockJSRequests: typeof options.blockJSRequests === 'undefined'
+          ? DEFAULT_BLOCK_JS_REQUESTS
+          : options.blockJSRequests,
         customPageHeaders: options.customPageHeaders,
         screenshots: options.screenshots,
         // postformatting
